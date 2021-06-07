@@ -268,12 +268,13 @@ PLATFORMS
   x64-mingw32
 
 DEPENDENCIES
-  github-pages (~> 215)
-  jekyll-feed (~> 0.12)
-  minima (~> 2.5)
+  github-pages
+  jekyll-feed (~> 0.6)
+  kramdown-parser-gfm
+  minima (~> 2.0)
   tzinfo (~> 1.2)
   tzinfo-data
-  wdm (~> 0.1.1)
+  wdm (~> 0.1.0)
 
 BUNDLED WITH
    2.2.19
