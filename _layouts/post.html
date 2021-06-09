@@ -1,0 +1,23 @@
+---
+layout: default
+---
+<h1><b>{{ page.title }}</b></h1>
+<p>{{ page.date | date_to_string }}</p>
+<table>
+    <colgroup>
+        <col width="20%" />
+        <col width="80%" />
+    </colgroup>
+    <tbody>
+        <tr>
+            <td markdown="span"><b>Link</b></td>
+            <td markdown="span"><a href="{{page.paper_link}}">{{page.paper_link}}</a></td>
+        </tr>
+        <tr>
+            <td markdown="span"><b>Year</b></td>
+            <td markdown="span">{{page.paper_year}}</td>
+        </tr>
+    </tbody>
+</table>
+
+{{ content }}
