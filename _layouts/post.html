@@ -9,14 +9,18 @@ layout: default
         <col width="80%" />
     </colgroup>
     <tbody>
+	    {%- if page.paper_link %}
         <tr>
             <td markdown="span"><b>Link</b></td>
             <td markdown="span"><a href="{{page.paper_link}}">{{page.paper_link}}</a></td>
         </tr>
+		{%- endif %}
+	    {%- if page.paper_year %}
         <tr>
             <td markdown="span"><b>Year</b></td>
             <td markdown="span">{{page.paper_year}}</td>
         </tr>
+		{%- endif %}
     </tbody>
 </table>
 
