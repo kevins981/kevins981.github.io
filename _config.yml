@@ -20,7 +20,7 @@ linkedin_username: xinyang-song-39507512b
 description: >- # this means to ignore newlines until "baseurl:"
   University of Toronto
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://kevins981.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 #twitter_username: jekyllrb
 #github_username:  jekyll
 
