@@ -1,0 +1,76 @@
+---
+title:  "#8 go-pmem: Native Support for Programming Persistent Memory in Go"
+paper_link: https://www.usenix.org/conference/atc20/presentation/george
+paper_year: USENIX 2020
+---
+
+# Details 
+This paper proposes go-pmem, an extension of Go that natively support persistent memory programming.
+The authors were motivated to do this work when porting Redis to NVM platforms. The original Redis uses both DRAM and block storage to implement
+an in-memory database. The authors observed a speed up just by replacing the block storage with NVM, and a further speed up when using the NVM through the
+byte-addressable interface similar to DRAM (this eliminates the AOF, which is a log file Redis uses to achieve data persistency, since data is now
+directly persisted to NVM. One might call this a in-nvm database). 
+
+Goal 1 refers to the fact that the data's location (DRAM or NVM) should not change its type (ex. persistent integer type). This enables goal 6,
+where functions can treat volatile and persistent objects in the same way. Goal 2 means that programmer should allocate persistent memory
+from persistent heap, which is separate from the volatile heap. Goal 3 says that persistent pointers should also use absolute addresses like volatile pointers. 
+More on this later. 
+
+## Why Native Go?
+The authors argue that introducing persistent memory libraries exposes different programming models (true for PMDK) and makes memory management tricky
+(this is pretty vague). Thus, the authors chose to enable pmem programming natively. Furthermore, the authors argue that a language that supports NVM natively
+should allow persistent memory allocations on the heap and support garbage collection of persistent objects in the heap.
+This paper also attempts to make porting legacy code easier by 1) changing less code via ex. function reuse and 2) for code that must be modified, making the
+changes minimal and simple via ex. native programming model. The authors chose Go because it is a high level managed language. The pmem extension can then
+utilize existing features such as automatic memory management. 
+
+## Programming Model
+Figure 1 right highlights (<-) the differences between a pmem program and the normal volatile code (Go does look a lot nicer than C).
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/go-pmem/design_goals.jpg){: width="650" } 
+{: refdef}
+{:refdef: style="text-align: center;"}
+*Figure 1: go-pmem design goals and example code snippet [1].*
+{: refdef}
+
+## Runtime Design
+To implement persistent pointers, go-pmem utilizes pointer swizzling, which fixes pointers when the NVM virtual memory mapping changes. 
+This allows go-pmem to store direct pointers in persistent memory. In contrast, PMDK adopts fat pointers, which contains the object's pool
+ID and offset within the pool. The authors argue that fat pointers are slow because dereferencing them requires a hashmap lookup (pool ID ->
+pool base address) and an addition. On the other hand, pointer swizzling is performed once per pmem initialization. Consequent dereferences
+can be performed in the same way as virtual address pointers. Pointer swizzling also enables function reuse.
+
+go-pmem requires users to mark the start and end of transactions. go-pmem currently has somewhat poor transaction concurrency support. 
+To ensure transaction isolation, go-pmem requires the user to use locks. Despite where exactly the lock is acquired/released, go-pmem forces 
+the locks the be acquired and the start of the tranasction and released at the end. This limits concurrency between transactions with 
+conflicting locks, as the transaction are forced to occur sequentially even if some locks can be released before the end of the transaction.
+
+Skipping sections on heap sesign, post-crash restarting algorithm. Skipping Implementation entirely...
+
+Nevermind, the pmem allocation optimization seems important. go-pmem somehow caches frequently allocated types to speed up further allocations of such
+objects. Not sure exactly how this works (see question 1). In the evaluation, go-pemem and Makalu show >10x speed up compared to pmdk on memory allocation
+intensive microbenchmark. This is because Makalu and go-pmem do not write to pmem for each new allocation, where as PMDK must perform all alloac and dealloc in a txn (see q1).
+
+# Thoughts and Comments
+- In Figure 1 (this post), design goals 1-3, 6-7 are novel compared to ex. PMDK. Goals 4 and 5 are basic persistent memory programming requirements. 
+- In Figure 1 (this post), I am not sure if goal 2 is a design goal. It sounds more like a specific implementation made to achieve a goal, but not the goal itself.
+- The idea of reusing functions for both volatile and persistent objects is interest. AutoPersist also emphasized this idea, but it limits the reuses
+across volatile and persistent *pointers*. go-pmem takes this a step further and support all objects.
+- In section 2.2, the authors argue that a language that supports NVM natively should allow persistent memory allocations on the heap AND support garbage collection of persistent
+heap objects. The formal makes sense, since this is how volatile memory is used. I do not understand why the latter is required. Perhaps this is specifically referring to high level managed languages?
+- The idea of pointer swizzling is interesting. The authors claim that swizzling allows faster deferencing, but I think the overall performance of programs depend on how often pmem remapping occurs.
+If remapping occurs often, then perhaps the PMDK approach performs better, since it does not need to fix each pointer.
+- I like that this paper reflects on its own limitations several times. 
+- In the evaluation, the set of pmem programming models used for each experiment seems inconsistent. For example, while Figure 5 (in the paper) includes Makalu, Figures 6 and 7 
+do not anymore with no explanation (at least I couldn't find it).
+
+# Questions
+1. I am not too sure what the authors mean by go-pmem and Makaly do not write to pmem for each new allocation. I also need to 
+confirm that PMDK only allow pmem allocation and deallocation within transactions.
+
+# Sources
+[1] USENIX. "USENIX ATC '20 - go-pmem: Native Support for Programming Persistent Memory in Go" [Video file]. Available: https://www.youtube.com/watch?v=swnvGt3GlK0&t=834s
+
+
+
