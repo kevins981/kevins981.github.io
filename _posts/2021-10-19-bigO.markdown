@@ -1,0 +1,103 @@
+---
+title:  "Big O"
+---
+
+This post is my notes while going through Cracking the Coding Interview [1]. I do not own any of 
+the materials.
+
+Welp I should remember these stuff from first year, but hey, doesn't hurt to review (and most likely 
+learn something new).
+
+
+# Theory
+Recall that big O is actually the upper bound. So you can say that the runtime of bubble sort is O(N^1000). Why not.
+Big omega is lower bound. Big theta is the tight bound. 
+
+Big O/omega/theta is different from best/worst/average case. Bubble sort's worst case is (thankfully) not O(N^1000).
+
+Stack space counts as space complexity too. The below code has space complexity of O(n).
+
+```c
+int sum(int n) {
+    if (n <= 0) {
+        return 0;
+    }
+    return n + sum(n-1);
+}
+```
+
+## Amortized Time
+The classic example of adding an element of an ArrayList, which doubles its current size if its full. 
+If I insert X elements, then the amortized runtime is runtime_of_X / X. To insert X elements, we need to
+perform 1+2+4+8+...+X copy operations. Or, if reading this backwards, X+X/2+X/4+...+1 = 2X. So inserting X
+elements require 2X copy operations. The amortized runtime is O(1).
+
+## Recursive Runtimes
+Often times (not all the time), the runtime of a recursive algorithm is O(number of f() calls per f() ^ depth). 
+It is also sometimes better to write things out. 
+
+Just using the rule, the below code should be O(2^n). Let's check for n = 4. f(4) -> 2xf(3) -> 4xf(2) -> 8xf(1). There are in total
+1+2+4+8 = 15 calls, which is 2^4-1.
+
+```c
+int f(int n) {
+    if (n <= 1) {
+        return 1;
+    }
+    return f(n - 1) + f(n - 1);
+} 
+```
+
+# Some Interesting Questions
+1. An algorithm takes in an array of strings, sort each string alphabetically, and then sort the array. 
+The key is to realize there are two parameters, max len of string (s) and array size (a). In addition, each string comparison takes O(s) time. 
+So the runtime is O(sort all string) + O(sort array) =  O(a\*s\*log s) + O (a\*log a\*s)
+
+2. Runtime complexity of the following code (we are in java land now)?
+```java
+void permutation(String str) {
+    permutation(str, "");
+}
+
+void permutation(String str, String prefix) {
+    if (str.length() == 0) {
+        System.out.println(prefix);
+    } else {
+        for (int i= 0; i < str.length(); i++) {
+            String rem = str.substring(0, i) + str.substring(i + 1);
+            permutation(rem, prefix + str.charAt(i));
+        }
+    }
+}
+```
+
+It is useful to figure out what this code does and how it does it first. Let str == "kev".  The for-loop iterates through each letter in
+the word, k->e->v. For each of these letters, rem is the rest of the letters, ev->kv->ke. For letter k, we call permutation(ev, k), which
+iterates through letters e->v. This then becomes permutation(v, ke) and permutation(e, kv). The next recursions only have 1 call, which 
+reach the terminating condition, printing kev and kve. So the tree looks sth like:
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/bigo/kev.png){: width="450" }
+{: refdef}
+
+Insights are important. This code is basically moving characters from str to prefix one at a time. The tree shows that the time complexity
+is a bit tricky. The first level contains 3 calls, then each node in the first level produces 2 calls (since there are 2 letters left). So
+there are n! leaf nodes for a string of n letters. There seems to be n levels, so there are O(n\*n!) nodes in the tree. But, for each node,
+we need to perform string concatenate, which is a O(n) operation in C++. 
+
+Aside: C++ string are mutable, which makes this O(n). If immutable, the runtime would be worse. 
+
+Thus, the total runtime is O(n\*n\*n!). Done.
+
+Or are we? Turns out, the total number of nodes in the tree is less than O(n\*n!). Ex. for n = 5, we have 5! nodes in the nth level, 5!/1 in 
+n-1th, 5!/2! in n-2th, 5!/3! in n-3th etc. The sum of this series is e\*n!, which means that the total runtime is instead O(n\*n!).
+
+Some takeaways from this problem:
+- **Do not forget that the runtime also needs to include HOW MUCH WORK EACH ITERATION PERFORMS, and not just how many iterations are there.**
+- **Understanding the core helps with runtime analysis.**
+- **Using simple examples to learn what the code does.**
+
+# Sources
+[1] https://www.crackingthecodinginterview.com/
+
+
