@@ -29,9 +29,13 @@ markdown: kramdown
 theme: minima
 plugins:
   - jekyll-feed
+  - jekyll-paginate
   
 header_pages:
   - about.md
+
+paginate: 10
+#paginate_path: "/_posts/page:num/"
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
