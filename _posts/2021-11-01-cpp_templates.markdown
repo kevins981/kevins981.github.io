@@ -153,19 +153,27 @@ int main () {
 ```
 
 # Template Instantiations
+Template instantiation happens when the compiler generates a class/function from a template.
+Ex. a class generated from a class template is called a *generated class*. Same for generated function and generated static 
+data member.
 
+Two types of instantiations: implicit and explicit. 
 
-{:refdef: style="text-align: center;"}
-![](/assets/images/posts/bigo/kev.png){: width="450" }
-{: refdef}
+Just from the syntactic perspective, implicit vs explicit instantiations look like this:
+
+```cpp
+Z<int> zi; // implicit
+template class Z<int>; // explicit
+```
+
+There are further compiler consequences and use cases for implicity vs explicit. Skipping here.
 
 # Further Readings
 - Cpp std::allocator
 - namspace
+- implicit vs explicit instantiations
 
 # Sources
 [1] http://users.cis.fiu.edu/~weiss/Deltoid/vcstl/templates
 
 [2] https://www.cplusplus.com/doc/oldtutorial/templates/
-
-
