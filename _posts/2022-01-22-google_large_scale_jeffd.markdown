@@ -36,9 +36,19 @@ This include understanding common system numbers, design patterns, data structur
 
         <span style="color:red"> Are these numbers still accurate in 2022?</span>.
         <span style="color:red"> Add SSD and NVM </span>.
+        <span style="color:red"> Add Add bandwidth numbers </span>.
         {:refdef: style="text-align: center;"}
         ![](/assets/images/posts/google_large_scale_jeffd/numbers.png){: width="450" }
         {: refdef}
+
+        Some things to note
+        - L1 is in the order of a couple of CPU cycle of 2GHz CPU
+        - L2/L1 is 10^1, main memory/L2 is 10^2, disk/main mem us 10^5
+        - Local network latency is on microsecond scale
+        - For the same amount of data, local network is ~50x slower than main mem
+        - Reading 1MB from DRAM: DDR3@800MHz has BW of ~7GB/s, which results in ~200us. For
+        DDR4 at 3.2GHz, the peak BW is 25GB/s, so the latency should be ~40us. 
+
 
     - **Practice back of the envelope calculations.** (I wonder where I can find resources for this)
     - **Understand common systems**, on the implementation level. Ex. core language libraries,
