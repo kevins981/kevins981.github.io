@@ -9,6 +9,11 @@ Note that this keynote was from 2010.
 I start taking notes after the 38 minute mark, after the speaker finishes introducing mapreduce and
 BigTable. These specific tools will be studied in separate posts.
 
+# The Big Ideas
+- Having a solid understanding of fundemental building blocks is critical for performing effective performance estimations.
+This include understanding common system numbers, design patterns, data structures, and key system components.
+
+
 # System Building Experiences
 1. **Divide large systems into smaller services**
     - Simpler sw dev: few dependencies (?), easy to update individual services,
@@ -30,6 +35,7 @@ BigTable. These specific tools will be studied in separate posts.
     - Prerequisites: solid understanding of the building blocks, aka. fundamentals.
 
         <span style="color:red"> Are these numbers still accurate in 2022?</span>.
+        <span style="color:red"> Add SSD and NVM </span>.
         {:refdef: style="text-align: center;"}
         ![](/assets/images/posts/google_large_scale_jeffd/numbers.png){: width="450" }
         {: refdef}
