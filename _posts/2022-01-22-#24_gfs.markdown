@@ -5,6 +5,7 @@ paper_year: SOSP 2003
 ---
 
 # The Big Ideas
+- Designed for large sequential accesses and append.
 - Break file into chunks, replicate, and distribute.
 - Design pattern: single master multiple followers on two levels: master vs chunk servers and
 primary vs follower replicas.
@@ -18,6 +19,17 @@ and the filesystem.
 - Design pattern: lease mechanism to reduce management overhead by offloading to a known safe server. 
 
 # Backgrounds 
+The fundemental goal of large scale file system (or distributed systems in general) is
+to offer high aggregated performance using clusters of machines. But horizontal scaling is 
+not easier. High performance usually means replication -> but requires extra work to 
+ensure consistency and fault-tolerance -> lower performance.
+
+**^ widely accepted prior wisdom**
+
+This is a loop, or tradeoff that distributed systems must face. 
+
+
+
 Linux file append atomicity. How do they work? Atomicity guarantee?
 What are file namespaces
 
