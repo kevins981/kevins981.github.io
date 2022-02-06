@@ -1,0 +1,55 @@
+---
+title:  "Common Numbers You Should Know"
+---
+
+This post is inspired by Jeff Dean's list of "Numbers Everyone Should Know". 
+I wanted to 1) update Jeff's numbers to reflect the latest generation of technologies
+2) add more relevant numbers that are not covered in the original list. 
+
+|Op |Number| Notes   |
+|---|---|---|
+|L1 cache   | 0.5-1ns, 1TB/s, 32KB  |  L1 access takes ~4 CPU cycles. For a 4GHz CPU, this is ~1ns. [1] |
+|L2 | 5ns, 1TB/s, 256KB  | ~10 cycles. Note that L2 may be shared by multiple cores. [1] |
+|L3 | 50ns, 500GB/s, >8MB  |   |
+|Main memory (DDR3) | 100ns, 10GB/s, ~1GHz  | [2] Not sure how up to date the 100ns latency is. |
+|Main memory (DDR4) | ?ns, 30GB/s, ~3GHz  | [3]  Not sure how up to date the 100ns latency is.|
+|Main memory (HBM) | ?ns, 200GB/s  | Need to verify |
+|SSD | 20us, 10GB/s  | [4] but sources such as [6] suggest SSD bw can be lower than 1GB/s |
+|NVM| 300ns, 5GB/s |  [5] |
+|Hard disk drive | 10ms, 100MB/s  | [6]  |
+
+
+## Availability Levels [7]
+
+|Nines | Downtime per year | per day |
+|---|---|---|
+|90% | 37 days | 2.4hr |
+|95% | 18 days| 1.2hr |
+|99% | 5 days| 14min |
+|99.9% | 9 hr| 1.4min |
+|99.99% | 53 min| 8.6s |
+|99.999% | 5 min| 0.9s |
+
+<span style="color:red"> what is required in practice to get 5 nines? If I need to design such a system, what optimizations would I need to do?</span>.
+
+<span style="color:red"> How can Raft afford to use a single master to serve all client requests? Does this not create a performance bottleneck? </span>.
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/google_large_scale_jeffd/single_master.png){: width="450" }
+{: refdef}
+
+
+# Sources
+[1] https://www.intel.com/content/www/us/en/developer/articles/technical/memory-performance-in-a-nutshell.html
+
+[2] https://www.kingston.com/en/memory/ddr3-1600
+
+[3] https://www.crucial.com/support/memory-speeds-compatability
+
+[4] https://en.wikipedia.org/wiki/Solid-state_drive
+
+[5] https://arxiv.org/pdf/1903.05714.pdf
+
+[6] https://tekie.com/blog/hardware/ssd-vs-hdd-speed-lifespan-and-reliability/#:~:text=A%20typical%207200%20RPM%20HDD,s%20to%20550%20MB%2Fs.
+
+[7] https://sre.google/sre-book/availability-table/
