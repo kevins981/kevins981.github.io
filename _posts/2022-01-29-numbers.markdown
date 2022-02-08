@@ -6,6 +6,7 @@ This post is inspired by Jeff Dean's list of "Numbers Everyone Should Know".
 I wanted to 1) update Jeff's numbers to reflect the latest generation of technologies
 2) add more relevant numbers that are not covered in the original list. 
 
+
 |Op |Number| Notes   |
 |---|---|---|
 |L1 cache   | 0.5-1ns, 1TB/s, 32KB  |  L1 access takes ~4 CPU cycles. For a 4GHz CPU, this is ~1ns. [1] |
@@ -17,6 +18,17 @@ I wanted to 1) update Jeff's numbers to reflect the latest generation of technol
 |SSD | 20us, 10GB/s  | [4] but sources such as [6] suggest SSD bw can be lower than 1GB/s |
 |NVM| 300ns, 5GB/s |  [5] |
 |Hard disk drive | 10ms, 100MB/s  | [6]  |
+
+## Network
+
+|Op |Number| Notes   |
+|---|---|---|
+|2kB over 1Gbps network | 16us | Theoretically this should take 16us, since 1Gbps means 1ns per bit. I am seeing 400us between my 1Gbps workstation and server (~20meters apart). Why is this?  | 
+|Round trip time within same data center | 500us | What does this mean? Time between two servers in the same datacenter? Why is it 500us? Does it have to do with network speed vs distance? Speed of light is approx 300m/us.  |
+|Round trip time from California to Europe | 150ms | Distance between California and Europe is about 8000kM [9]. Assuming network packets travel at the speed of light, a round trip would take ~50ms. This probably means the network travel speed is slower, which is expected. |
+
+- Seems like some of [8] numbers are based on prediction models of past papers. We should try benchmarking some of
+these numbers ourselves.
 
 
 ## Availability Levels [7]
@@ -30,8 +42,23 @@ I wanted to 1) update Jeff's numbers to reflect the latest generation of technol
 |99.99% | 53 min| 8.6s |
 |99.999% | 5 min| 0.9s |
 
+- Difference between 4 nines and 5 nines is 10x, since 0.01% vs 0.001% downtime
+- There are 24\*60\*60 = 86400s in a day. 0.001% downtime is 0.86s or approx. 0.9s (or approx. 1s?)
+
 <span style="color:red"> what is required in practice to get 5 nines? If I need to design such a system, what optimizations would I need to do?</span>.
 
+## Binary Numbers
+
+|2^10 | 10^3 | 1k |
+|2^20 | 10^6 | 1M |
+|2^30 | 10^9 | 1G |
+|2^40 | 10^12 | 1T |
+|2^50 | 10^15 | 1Peta |
+|2^60 | 10^18 | 1Exa |
+
+
+
+## Misc
 <span style="color:red"> How can Raft afford to use a single master to serve all client requests? Does this not create a performance bottleneck? </span>.
 
 {:refdef: style="text-align: center;"}
@@ -53,3 +80,7 @@ I wanted to 1) update Jeff's numbers to reflect the latest generation of technol
 [6] https://tekie.com/blog/hardware/ssd-vs-hdd-speed-lifespan-and-reliability/#:~:text=A%20typical%207200%20RPM%20HDD,s%20to%20550%20MB%2Fs.
 
 [7] https://sre.google/sre-book/availability-table/
+
+[8] https://colin-scott.github.io/personal_website/research/interactive_latency.html
+
+[9] http://distancebetween2.com/california/europe#:~:text=The%20total%20straight%20line%20distance,to%20Europe%20is%205171.2%20miles.

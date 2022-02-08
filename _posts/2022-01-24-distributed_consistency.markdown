@@ -11,6 +11,11 @@ depends on who is reading the data.
 - Clients should be able to choose their own consistency model.
 - Review the possible baseball scores example.
 
+
+<span style="color:red"> give examples on real systems and their consistency models</span>.
+<span style="color:red"> what are the real world performance implications of each 
+consistency model? What do they mean for real systems?</span>.
+
 # Strong and Weak Consistency
 The need for consistency arises from replication, which is nowadays almost a first principle in distributed systems: pretty much
 all large scale distributed systems use replication [source?]. Replication provides both higher fault-tolerance and availablity, but

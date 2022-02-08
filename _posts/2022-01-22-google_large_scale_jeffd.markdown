@@ -9,6 +9,11 @@ Note that this keynote was from 2010.
 I start taking notes after the 38 minute mark, after the speaker finishes introducing mapreduce and
 BigTable. These specific tools will be studied in separate posts.
 
+<span style="color:red"> How can Raft afford to use a single master to serve all client requests? Does this not create a performance bottleneck? </span>.
+
+<span style="color:red"> what are some typical read/write ratios for common distributed workloads? </span>.
+
+
 # The Big Ideas
 - Having a solid understanding of fundemental building blocks is critical for performing effective performance estimations.
 This include understanding common system numbers, design patterns, data structures, and key system components.
@@ -34,7 +39,6 @@ This include understanding common system numbers, design patterns, data structur
     - Critical skill: estimate performance of a system design
     - Prerequisites: solid understanding of the building blocks, aka. fundamentals.
 
-        <span style="color:red"> Are these numbers still accurate in 2022?</span>.
         {:refdef: style="text-align: center;"}
         ![](/assets/images/posts/google_large_scale_jeffd/numbers.png){: width="450" }
         {: refdef}
