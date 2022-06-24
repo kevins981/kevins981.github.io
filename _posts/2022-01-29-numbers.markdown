@@ -23,7 +23,7 @@ I wanted to 1) update Jeff's numbers to reflect the latest generation of technol
 
 |Op |Number| Notes   |
 |---|---|---|
-|2kB over 1Gbps network | 16us | Theoretically this should take 16us, since 1Gbps means 1ns per bit. I am seeing 400us between my 1Gbps workstation and server (~20meters apart). Why is this?  | 
+|2kB over 1Gbps network | 16us | Theoretically this should take 16us, since 1Gbps means 1ns per bit. I am seeing 400us between my 1Gbps workstation and server (~20meters apart). Why is this? Likely because of latency. | 
 |Round trip time within same data center | 500us | What does this mean? Time between two servers in the same datacenter? Why is it 500us? Does it have to do with network speed vs distance? Speed of light is approx 300m/us.  |
 |Round trip time from California to Europe | 150ms | Distance between California and Europe is about 8000kM [9]. Assuming network packets travel at the speed of light, a round trip would take ~50ms. This probably means the network travel speed is slower, which is expected. |
 
@@ -32,6 +32,8 @@ these numbers ourselves.
 
 
 ## Availability Levels [7]
+Number of seconds in a day = 86400;
+Number of hours in a year = 8760
 
 |Nines | Downtime per year | per day |
 |---|---|---|
