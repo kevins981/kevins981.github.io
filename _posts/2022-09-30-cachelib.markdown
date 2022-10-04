@@ -1,0 +1,149 @@
+---
+title: "The CacheLib Caching Engine: Design and Experiences at Scale"
+paper_link: https://www.usenix.org/system/files/osdi20-berg.pdf
+paper_year: OSDI 2020
+
+---
+
+This post will focus on the CacheLib paper. A separate post will focus on the engineering design and usage of CacheLib.
+
+# The Big Ideas
+
+
+# CacheLib Motivations
+CacheLib is a C++ caching library for both building caches and accessing caches. This library provides a set of core 
+caching functionalities and aims to unify the various specialized caches in Meta. From the paper, Meta used to 
+independently develop caches for different subsystems (e.g. CDN, graph, storage). The authors argue that this disjointed 
+approach is suboptimal because it 1) requires large amount of engineering effort to maintain due to redundant code 2)
+makes sharing optimizations across subsystems difficult. In summary, the key goal is a general-purpose caching library.
+
+However, similar to the generalization-vs-specialization debate, converting from specialized cache to CacheLib cannot be all 
+all sunshine and rainbows. First, not all specialized caches can be converted to using CacheLib. One example the paper provided
+is ad-serving systems, which rely on caching nested data structures. CacheLib cannot support this as it only 
+supports "data structures that map into a flat address space". 
+- I am not exactly sure what this means. Does this mean the data items have to consume contiguous address ranges? E.g. arrays. It is likely 
+that several CacheLib designs and optimizations rely on this restriction. 
+
+I recall that one of the main (claimed) advantages of Redis is that it supports caching a wide range of data structures, including
+nested ones. I do not know how important this support is to Meta's caches and in-memory caches in general. Perhaps the cients can
+take care of the nest data structure organization on the client end using CacheLib.
+
+Second, CacheLib cannot always provide competitive performance. The authors provided a case where CacheLib was eventually able to 
+eventually improve the performance of a specialized CDN cache by adding features into CacheLib. While this seems like a success story,
+the potential underlying problem is that CacheLib may end up having more and more specialized features. By accomodating too many specilized features,
+other problems may arise (e.g. CacheLib becoming too complex). Perhaps there needs to be a balance.
+
+
+# Caching Challenges at Meta
+
+
+
+## Caching Workloads
+The authors present several cache use cases at Meta. 
+
+- CDN caches: serves media objects such as photos, audio, and video. These CDN servers
+are physically located near the user to reduce the latency and network traffic.
+These caches are remote caches. I am not sure whether the CDN servers are running 
+workloads other than the CDN caches.
+- Application lookaside caches: these are general remote caches used by web applications
+to store e.g. user data. The term "lookaside" typically means that upon a miss, the client
+is responsible for retriving the missing item from the backend store and potentially 
+inserting this entry into the cache. The paper does not explicitly mention whether this is
+true or not. Perhaps this is common for distributed in-memory caches.
+- In-process caches: the cache instances runs on the same server as the client application,
+improving both latency and bandwidth (although cache misses should still require
+remote access). The tradeoff here is the extra resource consumed by the cache.
+The cache can therefore content resources from the client application and even cause 
+OOM.
+- ML caches: the authors list two ML use cases, input caching and output caching. 
+Input caching is caching ML model inputs (e.g. how many likes to sports related pages).
+This is interesting, since it implies that some parts of the ML runs on the client side.
+Of course, "client" here does not nessesarily mean the user's device. I imagine
+this could be e.g. the deep learning recommendation model (DLRM) services.
+Output caching is caching the ML model outputs, in case there are model predictions that
+have the same inputs. Here, the client could potentially be the user's device.
+- Storage-backend caches: Meta uses flash drives as caches of spinning disks. Do these caches
+still use DRAM, or only the flash?
+- Database page buffer: this sounds to me is caches sitting in front of databases. Perhaps 
+the difference between this type of cache and lookaside caches is that each database page buffer
+cache is dedicated to a particular database, whereas each lookaside cache correspond to an applcation.
+
+So it seems that there are multiple levels of cache even when considering only one application and
+the data center stack it interacts with. E.g. in-process cache within the client to cache latency 
+critical data, remote application lookaside cache, database page buffer cache, and storage-backend cache.
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/cachelib/fig1.png){: width="450" }
+{: refdef}
+
+## Cache Workload Behaviors
+This is the profiling part of the paper, which in itself is already valuable. 
+
+Here the authors study 4 cache workloads: Lookaside, SocialGraph, Storage, CDN.
+Both Lookaside and SocialGraph are application lookaside caches, while SocialGraph is used
+specifically for caching social graph information. 
+
+### Large Working Sets
+Here, the term "working set" refers to the set of data that are considered popular (although how popular is not defined).
+The authors analyze the popularity distribution and churn rates.
+
+Poularity distribution is shown on Figure 3. Ideally, we would want these plots to have a very steep negative slope, meaning
+that a small amount of data is extremely hot, making caching easy. 
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/cachelib/fig3.png){: width="450" }
+{: refdef}
+
+The formal definition of a Zipf distribution is that the i-th most popular object has a relative frequency of 1/i
+^a. The most popular object then has a relative frequency of 1, the second most popular 1/2^a. The greater the value of 
+a, the faster the decay, meaning a smaller hot set. This paper claims that past profiling/benchmark papers used 0.9 < a <= 1
+as the standard evaluation assumption, while SocialGraph and CDN shows smaller values of a, causing a larger working set. 
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/cachelib/zipf.png){: width="450" }
+{: refdef}
+
+The authors define churn as the change in the working set due to changes in key popularities. Meta workloads show a high
+degree of churn, as shown in Figure 4. Hot objects typically drop off in popularity after an hour. The popular YCSB
+assumes there is no churn, meaning that each key will have the same popularity throughout the benchmark. However, it is unclear
+whether this no-churn assumption makes a big difference. If the churn varies smoothy during the 1 hour, perhaps it does not impact 
+the overall performance significantly. More evaluation is needed.
+
+Twiiter TTL effect on working set size.
+
+### Size Variability
+
+### Bursty Traffic
+
+### Negative Caching
+
+
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/cachelib/fig4.png){: width="450" }
+{: refdef}
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/cachelib/fig5.png){: width="450" }
+{: refdef}
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/cachelib/fig6.png){: width="450" }
+{: refdef}
+
+Make a table of use case vs. charateristic (e.g. popularity)
+
+# Some Background
+Zipfian 
+Possion
+
+# Thoughts and Questions
+
+why follow zipf's inverse distribution? Perhaps more mathematical question.
+
+What role does TTL play? still large working set?
+
+Why CacheLib only supports "data structures that map into a flat address space"? What design decisions?
+
+Does CacheBench support churn?
+# Sources
