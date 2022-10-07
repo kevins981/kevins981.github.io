@@ -8,6 +8,15 @@ paper_year: OSDI 2020
 This post will focus on the CacheLib paper. A separate post will focus on the engineering design and usage of CacheLib.
 
 # The Big Ideas
+- The prior assumption that item popoluarity distribution follows a zipf distribution
+of 0.9 < alpha <= 1 is incorrect. Meta workloads have lower alpha and some do not follow zipf.
+  - zipf is a inverse distribution. Larger alpha is easier to cache.
+- Meta workloads have a large degree of churn: changes in item popularity. Item popularity drop
+off after ~1 hour.
+- Negative caching: storing keys for entries that definitely do not exist in the database (>50% of
+social graph requests).
+- The 4 main caching uses cases at Meta are: social graph, application lookaside, CDN, and storage,
+each consisting of ~20% usage.
 
 
 # CacheLib Motivations
