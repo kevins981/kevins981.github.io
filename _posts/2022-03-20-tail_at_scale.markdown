@@ -5,6 +5,10 @@ This post is my notes while going through [1]. See the Sources section for all s
 
 # The Big Ideas
 - Like fault tolerance, latency variability cannot be 100% eliminated. How can we design systems to be tail-tolerant given components with high tails? 
+- Latency variability of individual components is magnified at the system/service level. See 100 machine example below.
+- Two class of techniques
+  - Eliminating latency variability: break tasks into smaller pieces, synchronize background activities. Note that caching does not help with tail latency
+  - Living with it: hedged requests, tied requests; micro-partitions, selective replication, latency-induced probation. good-enough responses
 
 # Why Are Latency Variabilities Important?
 Results need to be returned to the user within tens of milliseconds. Prior studies have reported that for the user to feel as if the system is reacting instantaneously, the response time needs to be lower than 100ms.
