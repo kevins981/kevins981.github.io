@@ -118,33 +118,138 @@ assumes there is no churn, meaning that each key will have the same popularity t
 whether this no-churn assumption makes a big difference. If the churn varies smoothy during the 1 hour, perhaps it does not impact 
 the overall performance significantly. More evaluation is needed.
 
-Twiiter TTL effect on working set size.
-
-### Size Variability
-
-### Bursty Traffic
-
-### Negative Caching
-
-
-
 {:refdef: style="text-align: center;"}
 ![](/assets/images/posts/cachelib/fig4.png){: width="450" }
 {: refdef}
+
+
+While the topic of this section is "massive working set size", the authors in fact do not provide actual working set sizes,
+but instead show indirect evidences such as the popularity distribution. The vertical dashed lines in Figure 3 give some hints.
+It is also unclear what is the effect of TTL on the working set size. The recent work from Twitter [1] observes that TTL 
+effectively bounds the working set size (see Figure 7). 
+
+### Size Variability
+I am assuming the object size here refers to the value size. The key size should be relatively small compared to the values.
+Figure 5 shows that the two application lookaside caches, Lookaside and SocialGraph, have many small objects < 1KB. 
+This makes sense since they are used to cache general application data such as user data and social graph nodes.
+One implication is that caches should have small per-object memory overhead if it aims to store small objects in the order
+of 10s of bytes. 
+
+CDN only has objects larger than 100B and ~60% of the objects are 64KB large. Storage only has 128KB objects.
+This is because CDN and Storage split large objects into 64KB and 128KB chunks respectively.
 
 {:refdef: style="text-align: center;"}
 ![](/assets/images/posts/cachelib/fig5.png){: width="450" }
 {: refdef}
 
+In YCSB, the size variability can be configured (in a somewhat coarse grain manner) using `fieldlengthdistribution`, which
+can be one of constant, uniform, or zipfian [2]. Of course, YCSB also supports trace replaying (with some amount of engineering).
+
+
+### Negative Caching
+Negative caching stores key entries indicating that the requested object (e.g. connections between two users) 
+definitely does not exist. Without it, the client would need to search in both the cache and the backend database 
+to ensure the object does not exist. 55.6% of requests to SocialGraph are for keys that do not exist. 
+
+Negative caching is implemented using a DRAM compact cache, which optimizes for storing objects smaller than a 
+cacheline (64B), since a negative cache entry only requires storing the key. 
+
+
+### Summary
+
+|Workload/Challenge | Popularity distribution | Size variability  | Negative caching | 
+|---|---|---|---|
+|Lookaside   | alpha = 0.9  | 100B-1KB      | Not used |
+|SocialGraph | alpha = 0.55 | 10B-1KB       | 56% of all requests |
+|Storage     | not zipf     | 64KB and less | Not used |
+|CDN         | alpha = 0.7  | only 128KB    | Not used |
+
+# Evaluation
+
+## Emulating Churn (Correctly?)
+The authors emulate churn by continuously introduces new keys at a configurable rate. Based on the 
+CacheLib documentation [3], this should be the `loneGet` operation. Since `loneGetRatio` is a single 
+value, I am assuming that the amount of churn is constant throughout the benchmark. E.g. 10% of accesses
+are request for a key that does not exist in the cache. However, I found this to be 
+questionable. Based on this paper's own definition in Section 3.1, churn is "the change in the working set due
+to the introduction of new keys **and** changes in popularity of existing keys over time" (emphasis mine). The proposed
+methodology only addresses the first half of the definition, but does not seem to change the popularity of existing keys.
+Since the `loneGetRatio` is a single constant value, I do not see how CacheBench can emulate a changing 
+popularity distribution simiar to Figure 4. Thus, while the paper correctly point out that YCSB assumes no churn,
+I do not see how CacheBench supports churn either. 
+
 {:refdef: style="text-align: center;"}
-![](/assets/images/posts/cachelib/fig6.png){: width="450" }
+![](/assets/images/posts/cachelib/fig12.png){: width="450" }
 {: refdef}
 
-Make a table of use case vs. charateristic (e.g. popularity)
 
-# Some Background
-Zipfian 
-Possion
+## Hit Ratio and Throughput
+Figure 12 shows hit ratio and throughput comparisons against Memcached. The workload has a working set size of 100
+million objects. As the cache size increase, the hit ratio improves as well.
+- Interestingly, Memcached has ~10% higher hit rate than CacheLib at cache size = 32GB, which is quite significant. 
+The paper does not explain why this is the case, and I do not have enough understanding to make a hypothesis.
+More detailed evaluation is required.
+- The authors contribute CacheLib's higher throughput to optimizations that reduce lock contention, such as 
+when accessing LRU list head. The LRU list head stores the most recently used item, so it is stressed when the hit 
+ratio is high. However, at high hit ratios (>80%), Figure 12 shows that CacheLib performs on par with Memcached. 
+In fact, the CacheLib trend in Figure 12 b) shows that CacheLib's throughput degrades at high hit ratios.
+I am not sure what the cause is. Need more profiling.
+- It is not clear why Memcached cannot implement "optimizations that reduce lock contention". This does not appear to
+be a fundamental limitation of Memcached. 
+- In a realistic caching system, upon a miss, the client would be responsible for fetching the missing data from 
+a backend database, which induces extra latency. However, this extra latency is not emulated in CacheBench (actually, 
+I am not sure if this latency is emulated in any caching benchmark). The source code [4] 
+seems to show that upon a miss, the missing key is immediately inserted into the cache. This results in extra
+cache throughput pressure that should not occur in a real system. Thus, it is unclear whether CacheLib's higher 
+throughput at low hit ratios (more misses and cache inserts) is in fact useful.
+    ```c++
+    // stressByDiscreteDistribution()
+    auto it = cache_->find(*key);
+    if (it == nullptr) {
+      ++stats.getMiss;
+      result = OpResultType::kGetMiss;
+
+      if (config_.enableLookaside) {
+        // allocate and insert on miss
+        // upgrade access privledges, (lock_upgrade is not
+        // appropriate here)
+        slock = {};
+        xlock = chainedItemAcquireUniqueLock(*key);
+        setKey(pid, stats, key, *(req.sizeBegin), req.ttlSecs,
+               req.admFeatureMap);
+      }
+    ```
+
+One interesting point is that currently the slab class (I assume they mean allocation class here [7])
+ tuning (to reduce slab class fragmentation) is done manually.
+I am not sure what this means yet. I do not see any pararmeters to tune the slab classes in the CacheBench config file [6].
+I am also unsure how slab class tuning relates to slab rebalancing [5]. 
+
+## Production Deployment 
+
+Interestingly, Meta uses a two-layer hierarchy of caches, with L1 being DRAM-only cache and L2 being DRAM-flash hybrid
+cache. Only misses in L1 will be forwarded to L2. This provides much larger capacity and thus better hit ratio. 
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/cachelib/l1l2.png){: width="200" }
+{: refdef}
+
+Figure 14 shows the hit ratio distribution for various servers running CacheLib instances. Interestingly, the L1 cache2
+has higher hit ratio than the L2 caches. 
+This seems counter-intuitive, since L2 cache has larger capacity than L1. However, only L1 misses will be forwarded to L2.
+So I am not sure if there is a relationship between miss rate vs. the level of cache. Perhaps they are independent. 
+Even if L1 has 99.99% hit rate, we cannot really tell what the L2 hit rate would be, since it depends on the
+access pattern of the 0.01% of misses.
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/cachelib/fig12.png){: width="450" }
+{: refdef}
+
+Finally, Figure 16 shows the four dominant CacheLib use cases within Meta, which is useful to keep in mind.
+
+{:refdef: style="text-align: center;"}
+![](/assets/images/posts/cachelib/fig16.png){: width="450" }
+{: refdef}
 
 # Thoughts and Questions
 
@@ -152,7 +257,25 @@ why follow zipf's inverse distribution? Perhaps more mathematical question.
 
 What role does TTL play? still large working set?
 
+How does TTL effect the large working set size reported? Has TTL been taken into consideration? What is the actual
+working set size or the caches presented?
+
 Why CacheLib only supports "data structures that map into a flat address space"? What design decisions?
 
 Does CacheBench support churn?
+
 # Sources
+
+[1] https://www.usenix.org/system/files/osdi20-yang.pdf
+
+[2] https://github.com/brianfrankcooper/YCSB/issues/587
+
+[3] https://cachelib.org/docs/Cache_Library_User_Guides/Configuring_cachebench_parameters/#operation-ratios
+
+[4] https://github.com/facebook/CacheLib/blob/58161d143ac7b7ab9b8394d637f15bed102f7799/cachelib/cachebench/runner/CacheStressor.h#L340
+
+[5] https://cachelib.org/docs/Cache_Library_Architecture_Guide/slab_rebalancing/#2-how-do-we-pick-a-slab
+
+[6] https://cachelib.org/docs/Cache_Library_User_Guides/Configuring_cachebench_parameters
+
+[7] https://cachelib.org/docs/Cache_Library_Architecture_Guide/overview_a_random_walk#dram-regular-cache
