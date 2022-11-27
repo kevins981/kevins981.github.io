@@ -9,9 +9,9 @@ I wanted to 1) update Jeff's numbers to reflect the latest generation of technol
 
 |Op |Number| Notes   |
 |---|---|---|
-|L1 cache   | 0.5-1ns, 1TB/s, 32KB  |  L1 access takes ~4 CPU cycles. For a 4GHz CPU, this is ~1ns. [1] |
-|L2 | 5ns, 1TB/s, 256KB  | ~10 cycles. Note that L2 may be shared by multiple cores. [1] |
-|L3 | 50ns, 500GB/s, >8MB  |   |
+|L1 cache   | 0.5-1ns, 1TB/s, 80KB (Silver 4314)  |  L1 access takes ~4 CPU cycles. For a 4GHz CPU, this is ~1ns [1]. The capacity includes both instruction and data. It seems like the i and d-cache sizes are similar. |
+|L2 | 5ns, 1TB/s, 1.3MB per physical processor (Silver 4314) | ~10 cycles. Note that L2 may be shared by two cores [1] |
+|L3 | 50ns, 500GB/s, 24MB (Silver 4314), up to 48MB (Gold 6338N) | Silver 4314 seem to have one L3 per socket (source: output of `lscpu --caches`) |
 |Main memory (DDR3) | 100ns, 10GB/s, ~1GHz  | [2] Not sure how up to date the 100ns latency is. |
 |Main memory (DDR4) | ?ns, 30GB/s, ~3GHz  | [3]  Not sure how up to date the 100ns latency is.|
 |Main memory (HBM) | ?ns, 200GB/s  | Need to verify |
