@@ -2,7 +2,10 @@
 layout: default
 ---
 
-<!-- This loops through the paginated posts -->
+<!-- Sorting Notice -->
+<p class="sorting-info">Posts are sorted from newest to oldest. Click "Next (Older Posts)" to navigate backward in time.</p>
+
+<!-- Loop through posts -->
 {% for post in paginator.posts %}
   <h1><a href="{{ post.url }}">{{ post.title }}</a></h1>
   <p class="author">
@@ -12,10 +15,15 @@ layout: default
 
 <!-- Pagination Links -->
 <div class="pagination">
+  <!-- Direct Last Page Link (Now Labeled 'Oldest Posts') -->
+  {% if paginator.page < paginator.total_pages %}
+    <a href="{{ site.baseurl }}/page{{ paginator.total_pages }}/" class="pagination-last">⬅ Oldest Posts</a>
+  {% endif %}
+
   {% if paginator.previous_page %}
-    <a href="{{ paginator.previous_page_path }}" class="pagination-prev">Previous</a>
+    <a href="{{ paginator.previous_page_path }}" class="pagination-prev">⬅ Previous</a>
   {% else %}
-    <span class="pagination-prev disabled">Previous</span>
+    <span class="pagination-prev disabled">⬅ Previous</span>
   {% endif %}
 
   <!-- Numerical Pagination -->
@@ -28,13 +36,8 @@ layout: default
   {% endfor %}
 
   {% if paginator.next_page %}
-    <a href="{{ paginator.next_page_path }}" class="pagination-next">Next</a>
+    <a href="{{ paginator.next_page_path }}" class="pagination-next">Next (Older Posts) ➡</a>
   {% else %}
-    <span class="pagination-next disabled">Next</span>
-  {% endif %}
-
-  <!-- Direct Last Page Link -->
-  {% if paginator.page < paginator.total_pages %}
-    <a href="{{ site.baseurl }}/page{{ paginator.total_pages }}/" class="pagination-last">Last Page</a>
+    <span class="pagination-next disabled">Next (Older Posts) ➡</span>
   {% endif %}
 </div>
