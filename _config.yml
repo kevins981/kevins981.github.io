@@ -16,7 +16,7 @@
 title: Xinyang (Kevin) Song
 author: Xinyang Song
 #email: your-email@example.com
-linkedin_username: xinyang-song-39507512b
+linkedin_username: xinyang-kevin-song-39507512b
 description: >- # this means to ignore newlines until "baseurl:"
   University of Toronto
 baseurl: "" # the subpath of your site, e.g. /blog
@@ -29,13 +29,32 @@ markdown: kramdown
 theme: minima
 plugins:
   - jekyll-feed
-  - jekyll-paginate
+
+# Publish posts with future dates (needed for placeholder blog)
+future: true
+
+# Collections
+collections:
+  readings:
+    output: true
+  blogs:
+    output: true
+
+defaults:
+  - scope:
+      path: ""
+      type: "readings"
+    values:
+      layout: "post"
+  - scope:
+      path: ""
+      type: "blogs"
+    values:
+      layout: "post"
   
 header_pages:
-  - about.md
-
-paginate: 10
-#paginate_path: "/_posts/page:num/"
+  - blogs.md
+  - readings.md
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
