@@ -7,23 +7,25 @@ date:   2025-12-21
 
 [Part 1: Motivation and high level idea of teach-student knowledge transfer.](https://kevins981.github.io/blogs/teachagent_part1.html)
 
-TLDR: final accuracy improvement
+TLDR: This improved the agent (GPT-5 mini) success rate by 10% and 17%, outperforming even GPT 5.2 under the baseline setting. 
 
 use teacher-student system (open source prototype [Socratic](https://github.com/kevins981/Socratic)) to optimize a specific vertical agent: airline agent from tau-bench.
 
 <!-- explain briefly what is tau-bench and airline agent -->
 ## Background: Airline Agent and Tau-bench
-standard benchmark used by almost all major LLM to evaluate agentic capabilities (cite).
-Two sentence summary from original paper: "an agent interacts with database API tools and an LM-simulated user to complete tasks. The benchmark tests an agent’s ability to collate and convey all required information from/to users through multiple interactions, and solve complex issues on the fly while ensuring it follows guidelines laid out in a domain-specific policy document."
+Tau-bench is a benchmark used by almost all major LLM vendors (e.g. GPT, Gemini, Claude) to evaluate the model's agentic capabilities.
+[The original paper](https://arxiv.org/pdf/2406.12045) nicely summarizes the benchmark: 
+> An agent interacts with database API tools and an LM-simulated user to complete tasks. The benchmark tests an agent’s ability to collate and convey all required information from/to users through multiple interactions, and solve complex issues on the fly while ensuring it follows guidelines laid out in a domain-specific policy document.
 
 {:refdef: style="text-align: center;"}
 ![](/assets/images/blogs/teachagent_part2_fig1.png){: width="600" } 
 {: refdef}
 
-evaluation criteria: whether the expected functions are called and final database state. in above example, agent must call `cancel_reservation` with specific argument `JK9O19`.
+
+<!-- To evaluate whether the agent has performed a task correctly,  whether the expected functions are called and final database state. in above example, agent must call `cancel_reservation` with specific argument `JK9O19`. -->
 
 ## Goal: Optimizing the Airline Agent
-improve the success rate of this airline agent.
+In this blog, I will be focusing on improving the task success rate of this airline agent.
 do this by improving context given to agent: expert knowledge.
 
 split into train and test sets (20 and 30)
@@ -45,26 +47,16 @@ explain cycle of evaluate, analyze, optimize. show diagram
 ## Using Socratic in Practice
 Typically, both Analyze and Optimize stages needed to be done manually: a human domain expert analyzes failure traces, extract failure root causes, and manually revise agent context prompt hoping to improve agent performance.
 
-Using Socratic, I created *two* knowledge bases to build two specialized agents: one for Analyze stage, one for Optimize stage.
+Using Socratic, I created *two* specialized knowledge bases: one for Analyze stage, one for Optimize stage.
 
 
 <!-- how socratic is used for evaluate phase -->
-## Finding Failure Root Causes: Triage Agent
-evaluate: goal is to build KB that enables automatic analysis of failure traces and pinpoint root cause of failure.
+## Automating Agent Failure Analysis Using Socratic
+Finding the root cause given a failed agent trajectory is a non-trivial task that requires specialized knowledge of the airline workload, e.g.:
+* How is correctness of a trajectory determined? Is it by tool calls or final answer? 
+* What if the agent calls more than the set of expected tool calls? 
+* What are common failure patterns that we are interested in? etc. 
 
-
-
-So the knowledge base we want to produce is one that would enable an agent to accurate pinpoint failure root cause
-This task is not trivial to perform correctly.
-understanding the trace format. different for each workload, each with own nuance. e.g. how is correctness of trajectory determined? is it by tool calls or final answer? what if the agent calls more than the set of expected tool calls? what are common failure patterns that we are interested in? 
-
-use teaching via examples to build such a knowledge base. everytime agent encounters new failure trace, I (human teacher) discusses this with agent, and KB is updated.
-
-[The final knowledge base for triaging agent](https://gist.github.com/kevins981/899c5947ac99cd24f0b1e77b5cb89219).
-
-
-
-An example: 
 <details markdown="1">
 <summary markdown="span">Example airline agent failure trace</summary>
 <div class="code-wrap" markdown="1">
@@ -272,9 +264,16 @@ That’s a hard functional failure and is enough to zero the reward.
 ```
 This diagnosis is in fact not bad. The model correctly identified that the airline called the correct tool (`book_reservation`) but used the wrong argument. 
 (I am actually somewhat surprised that GPT 5.2 was able to understand the trace format without any prior context.)
-However, this is only the point of failure at the **surface level**. To meaningfully optimize the airline agent, we need to take a step further and understand *why* the agent failed.
+However, this is only the point of failure at the *surface level*. To meaningfully optimize the airline agent, we need to take a step further and understand *why* the agent failed.
 
-This is where expert context helps. Socratic Triage agent (GPT 5.2) diagnosis:
+This is why expert context is essential. The goal is thus to build such a specialized knowledge base that would enable an agent to *accurately pinpoint root cause of failure.*
+
+To do this, *teaching by example* is an effective approach.
+At the start, the knowledge base is empty and the student triage agent relied on common sense to diagnose failures.
+When the student agent encounters a failure trace and fail to identify the root cause, I (the human teacher) intervenes and provides the correct answer. The student agent then updates the knowledge base with new insights obtained from this trace. 
+**Through this iterative process, the triage agent gradually becomes more proficient.**
+
+At the end, the triage agent was able to provide this diagnosis for the above failure trace:
 ```
 Surface-level failure: the agent’s book_reservation call does not match the oracle 
 in info.task.actions—it booked return flight HAT069 on 2024-05-25, 
@@ -286,19 +285,25 @@ option (it even queried `search_direct_flight` with `origin:"JFK",
 destination:"SEA"` for the return date), then incorrectly assumed it could reuse the outbound 
 flight number for the return segment, leading to incorrect booking arguments.
 ```
+
 With proper context, the Socratic agent was able to give a more useful diagnosis, identifying that the agent incorrectly assumed it could reuse an outbound flight for the return segment. 
 This insight can be directly translated to an optimization for the airline agent (e.g. improve the system instructions to clarify that outbound flight cannot be reused for return flight).
 
 
-## Optimizing Airline Agent's Context 
+## Optimizing Airline Agent's Context using Socratic
 <!-- how socratic is used for optimize phase -->
-optimize: goal is build KB for the airline domain. e.g. how to handle edge cases, decision procedures.
-I use insights from analysis stage to drive KB updates. e.g. launch a teaching session in Socratic saying "lets study when agent should transfer to human more carefully"
-- show agent instruction before and after
+After the Analyze phase, I used Socratic to build a knowledge base for the airline domain, e.g. how to handle edge cases, detailed decision procedures. 
+The goal is to improve upon the [original baseline airline agent instructions](https://github.com/sierra-research/tau-bench/blob/main/tau_bench/envs/airline/wiki.md) to improve the airline agent's reliability. 
 
-[Original airline agent instructions](https://github.com/sierra-research/tau-bench/blob/main/tau_bench/envs/airline/wiki.md). \\
-[Optimized knowledge base](https://gist.github.com/kevins981/3ff5af01eb11ba0f742ccd15d995dd5a).
+I used insights from the previous failure analysis stage to drive updates to this airline knowledge base. 
+For instance, the agent often prematurely transferred the user to a human agent.
+To target this type of failures, I would launch a chat session in Socratic, e.g. "Lets study when agent should transfer to human more carefully." 
+The result is the knowledge base with more detailed human transfer instructions. The airline agent would then apply this updated knowledge base in its system prompts for evaluation.
 
+I performed this Evaluate -> Analyze -> Optimize loop roughly 5 times, improving both the triaging agent and airline knowledge base each time. 
+
+* [Final optimized triaging agent knowledge base](https://gist.github.com/kevins981/899c5947ac99cd24f0b1e77b5cb89219).
+* [Final optimized airline agent knowledge base](https://gist.github.com/kevins981/3ff5af01eb11ba0f742ccd15d995dd5a).
 
 ## Results 
 <!-- summarize performance improvements -->
