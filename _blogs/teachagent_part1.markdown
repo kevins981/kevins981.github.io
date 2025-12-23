@@ -118,11 +118,18 @@ Of course, while this vision is exciting, it is unclear how much performance we 
 
 
 
-<!-- 
-## Related efforts
-I see this experiment as adjacent to a few active areas:
 
-- **Skills and tool-use scaffolding:** systems that build competence by giving agents structured procedures and interfaces.
-- **Agentic memory systems:** approaches that store and retrieve agent experiences and distilled knowledge over time.
-- **Continual learning (non-weight update):** workflows that improve behavior by updating prompts, knowledge stores, and constraints rather than model parameters. -->
+## "This Sounds Like Just Another Agent Memory System"
+There are many good memory systems out there today. Most of them let a memory agent manage memory automatically: given a stream of conversations or documents, the agent indexes them into an internal structure (for example, a vector store or knowledge graph) and later recalls relevant facts. The goal is a transparent user experience: the agent remembers user preferences automatically.
+
+This works well for simple fact retention (e.g., "Alice likes sci-fi movies"), but my intuition is that they are less effective for complex domain knowledge, where it is unclear what the agent should learn and how it should interpret evidence (intuition only, experiments needed...). 
+Continuing our analogy: this is like a student taking notes without ever asking questions. The teacher has no way to correct misunderstandings. 
+
+Socratic makes a different tradeoff: instead of automatic memory, it enables the human to better control the knowledge transfer process. The knowledge base is just bunch of plain text files. Every update is visible, editable, and approved by the human teacher, making knowledge transfer explicit, inspectable, and correctable. 
+
+Second, a key goal of Socratic is to build **agents that are good at asking high-quality questions**. I strongly believe that this is a critical capability for effective knowledge transfer. Good questions drive deeper understanding, surface gaps in knowledge, and help address the "we can know more than we can tell" problem by drawing out tacit expertise from the human teacher.
+
+That being said, it is not very clear how to quantitatively define "high quality questions" and how to measure an agent's ability to ask the "right" questions. Building a concrete evaluation framework would be an interesting next step.
+
+(Fun fact: in Chinese, the word for "knowledge" is "学问": "学" means "learn" and "问" means "ask". Knowledge is half learning, half asking questions!)
 
