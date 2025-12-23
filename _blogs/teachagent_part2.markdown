@@ -43,11 +43,13 @@ explain cycle of evaluate, analyze, optimize. show diagram
 {: refdef}
 
 ## Using Socratic in Practice
-traditionally analyze and optimize stages needed to be done manually: human domain expert analyzes failures and manually revise system prompt.
-I use two instances to build knowledge base for both analyze and optimize phases. 
+Typically, both Analyze and Optimize stages needed to be done manually: a human domain expert analyzes failure traces, extract failure root causes, and manually revise agent context prompt hoping to improve agent performance.
+
+Using Socratic, I created *two* knowledge bases to build two specialized agents: one for Analyze stage, one for Optimize stage.
+
 
 <!-- how socratic is used for evaluate phase -->
-### Finding Failure Root Causes using Socratic-Triage Agent
+## Finding Failure Root Causes: Triage Agent
 evaluate: goal is to build KB that enables automatic analysis of failure traces and pinpoint root cause of failure.
 
 
@@ -288,7 +290,7 @@ With proper context, the Socratic agent was able to give a more useful diagnosis
 This insight can be directly translated to an optimization for the airline agent (e.g. improve the system instructions to clarify that outbound flight cannot be reused for return flight).
 
 
-### Optimizing Airline Agent's Context 
+## Optimizing Airline Agent's Context 
 <!-- how socratic is used for optimize phase -->
 optimize: goal is build KB for the airline domain. e.g. how to handle edge cases, decision procedures.
 I use insights from analysis stage to drive KB updates. e.g. launch a teaching session in Socratic saying "lets study when agent should transfer to human more carefully"
@@ -300,47 +302,77 @@ I use insights from analysis stage to drive KB updates. e.g. launch a teaching s
 
 ## Results 
 <!-- summarize performance improvements -->
+Below shows the airline agent success rate after agent optimizations. 
+* Success rates are avereaged across 3 trials. 
+* GPT-5 mini uses no reasoning. GPT 5.2 uses medium reasoning effort. 
+
+Train and test sets **improved by 10% and 17%**. Not bad! We made GPT-5 mini with no reasoning perform better than GPT 5.2 with medium reasoning effort! 
+
+(Note: the task success rates reported here are not directly comparable with those reported by LLM vendors. I have made numerous fixes to improve the quality of the ground truth grading, which is a [known issue](https://openai.com/index/introducing-gpt-5-2/). All evaluations use the same ground truth grading. See the [repository](https://github.com/kevins981/tau-bench_socratic) for all changes made.)
+
 {:refdef: style="text-align: center;"}
-![](/assets/images/blogs/teachagent_part2_optimized.svg){: width="350" } 
+![](/assets/images/blogs/teachagent_part2_optimized.svg){: width="450" } 
 {: refdef}
 
 ## Workload Specific Findings
-1. Step-by-step procedures/instructions tend to work better than unstructured rules. 
-    - E.g. Airline modification policy.\\
-    Original agent instructions:
+### 1. Step-by-step procedures/instructions tend to work better than unstructured rules. 
+E.g. The original Airline modification policy:
 
-        ```markdown
-        ## Modify flight
-        - The agent must first obtain the user id and the reservation id.
-        - Change flights: Basic economy flights cannot be modified. Other reservations can be modified without changing the origin, destination, and trip type. Some flight segments can be kept, but their prices will not be updated based on the current price. The API does not check these for the agent, so the agent must make sure the rules apply before calling the API!
-        - Change cabin: all reservations, including basic economy, can change cabin without changing the flights. Cabin changes require the user to pay for the difference between their current cabin and the new cabin class. Cabin class must be the same across all the flights in the same reservation; changing cabin for just one flight segment is not possible.
-        - Change baggage and insurance: The user can add but not remove checked bags. The user cannot add insurance after initial booking.
-        - Change passengers: The user can modify passengers but cannot modify the number of passengers. This is something that even a human agent cannot assist with.
-        - Payment: If the flights are changed, the user needs to provide one gift card or credit card for payment or refund method. The agent should ask for the payment or refund method instead.
-        ```
+```markdown
+## Modify flight
+- The agent must first obtain the user id and the reservation id.
+- Change flights: Basic economy flights cannot be modified. Other reservations can be modified without changing the origin, destination, and trip type. Some flight segments can be kept, but their prices will not be updated based on the current price. The API does not check these for the agent, so the agent must make sure the rules apply before calling the API!
+- Change cabin: all reservations, including basic economy, can change cabin without changing the flights. Cabin changes require the user to pay for the difference between their current cabin and the new cabin class. Cabin class must be the same across all the flights in the same reservation; changing cabin for just one flight segment is not possible.
+- Change baggage and insurance: The user can add but not remove checked bags. The user cannot add insurance after initial booking.
+- Change passengers: The user can modify passengers but cannot modify the number of passengers. This is something that even a human agent cannot assist with.
+- Payment: If the flights are changed, the user needs to provide one gift card or credit card for payment or refund method. The agent should ask for the payment or refund method instead.
+```
+
 Optimized modificaiton policy:
+```markdown
+### Modification Decision Procedure
+Given a reservation and a requested change, determine whether the overall modification is allowed by executing this procedure from top to bottom.
+1. If the request changes the number of passengers (adds/removes passengers), then **not allowed**.
+2. If the request adds travel insurance after initial booking, then **not allowed**.
+3. If the request decreases checked baggage count, then **not allowed**.
+4. If the request changes flights (itinerary / flight segments):
+- If the reservation cabin is **basic economy**, then **not allowed**.
+- If the change would alter the reservation’s **origin**, **destination**, or **trip type**, then **not allowed**.
+5. If the request changes cabin class, then **allowed** (including basic economy).
+6. If the request increases checked baggage count, then **allowed**.
+7. If the request changes passenger details (name and/or date of birth) without changing passenger count, then **allowed**.
+8. If any rule above cannot be evaluated due to missing information, treat the request as **not allowed** until the missing information is obtained.
+```
 
-        ```markdown
-        ### Modification Decision Procedure
-        Given a reservation and a requested change, determine whether the overall modification is allowed by executing this procedure from top to bottom.
-        1. If the request changes the number of passengers (adds/removes passengers), then **not allowed**.
-        2. If the request adds travel insurance after initial booking, then **not allowed**.
-        3. If the request decreases checked baggage count, then **not allowed**.
-        4. If the request changes flights (itinerary / flight segments):
-        - If the reservation cabin is **basic economy**, then **not allowed**.
-        - If the change would alter the reservation’s **origin**, **destination**, or **trip type**, then **not allowed**.
-        5. If the request changes cabin class, then **allowed** (including basic economy).
-        6. If the request increases checked baggage count, then **allowed**.
-        7. If the request changes passenger details (name and/or date of birth) without changing passenger count, then **allowed**.
-        8. If any rule above cannot be evaluated due to missing information, treat the request as **not allowed** until the missing information is obtained.
-        ```
-    - Intuitively this makes sense as its also true for humans. The latter instruction requires lower mental burden to follow correctly.
-2. Agent struggled with when to transfer to a human agent. This results in the agent terminating the conversation prematurely, without first confirming with user. 
-    - E.g. User requests to cancel basic economy flight, which is not allowed by airline policy. Agent directly transfers to human agent, without first communicating with the user.
-    - Turns out this is due to an ambiguous instruction: `"You should transfer the user to a human agent if and only if the request cannot be handled within the scope of your actions."` It is unclear exactly WHEN the agent should perform the transfer. 
-3. There lacks a tool to find information of a specific flight.
-    - The airline environment provides tools to retrieve details of a specific user or a reservation. But no such tool exists for a flight. This caused the agent to struggle with tasks that require specific flight info e.g. check delay status of flight.
-    - The solution was simple: add such a tool.
+If you step into the shoe of the agent and read both versions of instructions, you would probably find the second one be be easier to execute. 
+Logically, the two versions are equivalent: they produce the same output given the same input.
+But there is a subtle difference.
+
+In programming language terms, the first version is *declarative*: it describes the policy, but not *how* to follow the policy. 
+On the other hand, the second version is *imperative*: it tells the agent exactly how determine modification eligibility step-by-step, similiar to a program. 
+The latter requires lower mental burden to follow correctly: just follow the steps!
+
+### 2. Agent struggled with when to transfer to a human agent. 
+This results in the agent terminating the conversation prematurely, without first confirming with user. 
+
+E.g. User requests to cancel basic economy flight, which is not allowed by airline policy. Agent directly transfers to human agent, without first communicating with the user.
+
+Turns out this is due to an ambiguous instruction: `"You should transfer the user to a human agent if and only if the request cannot be handled within the scope of your actions."` It is unclear exactly WHEN the agent should perform the transfer. 
+
+Updated instructions: 
+```
+When a request is not allowed by policy, the assistant should first Inform the user that the requested action cannot be performed. 
+Only transfer to a human agent if the user still needs an outcome that the assistant cannot provide.
+
+Its important to not prematurely transfer to human agent without first informing the user. 
+This is because the user may have alternative requests once they are inform.
+```
+
+This effectively reduced premature transfer failures.
+
+### 3. There lacks a tool to find information of a specific flight.
+The airline environment provides tools to retrieve details of a specific user or a reservation. But no such tool exists for a flight. This caused the agent to struggle with tasks that require specific flight info e.g. check delay status of flight.
+The solution was simple: add such a tool `get_flight_details`. Having the right tool improves both agent reliablity and efficiency.
 
 Please see the [Socratic tau-bench repository](https://github.com/kevins981/tau-bench_socratic) for all optimizations made.
 
