@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Towards More Reliable CRM Agent"
-date:   2025-12-29
+title: Towards More Reliable CRM Agent
+date: 2025-12-31
 ---
 
 **TL;DR**: Customer Relationship Management (CRM) is an important class of agentic workload. 
