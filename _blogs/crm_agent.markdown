@@ -4,8 +4,7 @@ title: Towards More Reliable CRM Agent
 date: 2025-12-31
 ---
 
-**TL;DR**: Customer Relationship Management (CRM) is an important class of agentic workload. 
-Automating CRM tasks with LLM agents can offer significant business value, but in practice, CRM agents often suffer from low reliability. I perform a series of information-preserving optimizations that make CRM tool outputs more token-efficient, achieving a nearly 3x reduction in token cost per record, improving agent reliability from 85.3% to 94.0%. This experiment highlights the need to rethink how we design system interfaces for agents.
+**TL;DR**: Customer Relationship Management (CRM) is an important class of agentic workload. Automating CRM tasks with LLM agents can offer significant business value, but in practice, CRM agents often suffer from low reliability. I perform a series of information-preserving optimizations that make CRM tool outputs more token-efficient, achieving a nearly 3x reduction in token cost per record, improving agent reliability from 85.3% to 94.0%. This experiment highlights the need to rethink how we design system interfaces for agents.
 
 {% include toc.html toc_levels="2..2" %}
 
